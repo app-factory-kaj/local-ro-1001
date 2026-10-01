@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: Todo API
+  version: 0.1.0
+  description: Minimal in-memory todo storage — list, create, toggle, delete.
+servers:
+  - url: /
+paths:
+  /todos:
+    get:
+      operationId: listTodos
+      summary: List todos, oldest first
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: A page of todos
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count, data]
+                properties:
+                  count: { type: integer, description: total matching items }
+                  next: { type: string, nullable: true, description: relative URI of the next page }
+                  previous: { type: string, nullable: true, description: relative URI of the previous page }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Todo' }
+    post:
+      operationId: createTodo
+      summary: Create a new todo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewTodo' }
+      responses:
+        '201':
+          description: The created todo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Todo' }
+        '400':
+          description: Blank or missing title
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /todos/{todoId}:
+    delete:
+      operationId: deleteTodo
+      summary: Delete a todo
+      parameters:
+        - name: todoId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: No todo with that id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /todos/{todoId}/toggle:
+    post:
+      operationId: toggleTodo
+      summary: Toggle a todo's done status
+      parameters:
+        - name: todoId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The updated todo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Todo' }
+        '404':
+          description: No todo with that id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  schemas:
+    Todo:
+      type: object
+      required: [id, title, done, createdAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        done: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    NewTodo:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: integer, description: HTTP or application error code }
+        message: { type: string, description: short human-readable label }
+        description: { type: string, description: detailed explanation }
+        moreInfo: { type: string, description: URI to documentation }

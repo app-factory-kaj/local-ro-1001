@@ -1,0 +1,14 @@
+{
+  "name": "todo-api",
+  "type": "service",
+  "version": "0.1.0",
+  "language": "Go",
+  "buildpack": "docker",
+  "appPath": "todo-api",
+  "entrypoint": "deployment/service",
+  "exposure": "intranet",
+  "dependencies": [],
+  "description": "A minimal REST API that stores todos (title, done) in memory, in a single process-local slice. Exposes list, create, toggle-done and delete operations. Holds no database and no persistence of any kind — all data is lost on restart. Does not handle authentication, authorization, or any field beyond title and done.",
+  "stories": [1, 2, 3, 4],
+  "skillsPinned": ["openapi-conventions", "go"]
+}
