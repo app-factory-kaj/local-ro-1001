@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T14:05:00Z",
+  "commit": "c07ec7b10ce44ebd7150effbaa743e06408c5c9b",
+  "baseUrl": "http://http-local-ro-1001-development-default-d70107bc.openchoreoapis.localhost:19080/",
+  "isolation": "The todo list is a single global, unauthenticated in-memory list with no per-user/per-session container and one pre-existing todo ('via webapp /api on read-only template') not created by this run. Each scenario creates the specific todos it asserts about (using exact, scenario-distinct titles) and asserts only on those items by id/content, or on the delta in total count across its own Given+When actions, rather than on the absolute list state. The 'Viewing an empty list' scenario's Given ('no todos have been added') could not be reached this way since nothing could be asserted as a delta (the When is read-only), and deleting the pre-existing todo to force a literal empty state was out of scope (not this run's data to delete) — that scenario is reported blocked.",
+  "scenarios": [
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 6,
+      "rule": "The todo list shows every todo in creation order, oldest first",
+      "scenario": "Viewing todos added in sequence",
+      "tags": ["@story-1"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "a User has added \"Buy groceries\" and then \"Read a book\"", "keyword": "Given",
+          "command": "agent-browser fill @e9 \"Buy groceries\" && agent-browser click @e3 (Add); agent-browser fill @e13 \"Read a book\" && agent-browser click @e3 (Add)",
+          "exit": 0, "observed": "both todos appeared as new rows in the UI immediately after each Add click" },
+        { "text": "the User views the todo list", "keyword": "When",
+          "command": "agent-browser open http://http-local-ro-1001-development-default-d70107bc.openchoreoapis.localhost:19080/ && agent-browser wait --load networkidle --timeout 10000",
+          "exit": 0, "observed": "fresh page load re-fetched and rendered the list" },
+        { "text": "\"Buy groceries\" appears before \"Read a book\" in the list", "keyword": "Then",
+          "command": "agent-browser eval --stdin \"Array.from(document.querySelectorAll('tbody tr')).map(r => r.textContent.trim())\"",
+          "exit": 0, "observed": "[\"via webapp /api on read-only template3 minutes ago\", \"Buy groceriesJust now\", \"Read a bookJust now\"] — Buy groceries row precedes Read a book row" }
+      ],
+      "evidence": {}
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 11,
+      "rule": "The todo list shows every todo in creation order, oldest first",
+      "scenario": "Viewing an empty list",
+      "tags": ["@story-1"],
+      "outcome": "blocked",
+      "steps": [
+        { "text": "no todos have been added", "keyword": "Given",
+          "command": "curl -s \"http://development-default.openchoreoapis.localhost:19080/local-ro-1001-todo-api-http/todos?limit=100\"",
+          "exit": 0, "observed": "count: 1 — a pre-existing todo ('via webapp /api on read-only template', id d6387a6303cbe092e8450fccda269b54, created before this run started) is already present in the shared global list. This list has no per-user/per-session scoping, so a truly empty state cannot be reached without deleting that pre-existing item, which was not created by this run and is out of scope to delete." }
+      ],
+      "evidence": {
+        "notCaptured": "the Given state (empty list) could not be established through the UI or the API without deleting data this run did not create, so the When/Then were never attempted"
+      }
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 19,
+      "rule": "A new todo is added with a title and starts as not done",
+      "scenario": "Adding a todo with a title",
+      "tags": ["@story-2"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "no todos have been added", "keyword": "Given",
+          "command": "curl -s \"http://development-default.openchoreoapis.localhost:19080/local-ro-1001-todo-api-http/todos?limit=100\"",
+          "exit": 0, "observed": "baseline count recorded as 3 (shared global list already held other items from the prior scenario and the pre-existing seed todo); isolation is via delta from this baseline, not a literal zero" },
+        { "text": "the User adds a todo titled \"Walk the dog\"", "keyword": "When",
+          "command": "agent-browser fill @e17 \"Walk the dog\" && agent-browser click @e3 (Add) && agent-browser wait --text \"Walk the dog\" --timeout 10000",
+          "exit": 0, "observed": "new row \"Walk the dog\" appeared" },
+        { "text": "the list has exactly one todo", "keyword": "Then",
+          "command": "agent-browser get count \"tbody tr\"",
+          "exit": 0, "observed": "4 — exactly one more than the baseline of 3, i.e. exactly one todo was added" },
+        { "text": "that todo is titled \"Walk the dog\" and is not done", "keyword": "And",
+          "command": "curl -s \"http://development-default.openchoreoapis.localhost:19080/local-ro-1001-todo-api-http/todos?limit=100\"",
+          "exit": 0, "observed": "{'id': 'a70c64debfc7a333fd3a91646ac7e783', 'title': 'Walk the dog', 'done': False, 'createdAt': '2026-10-01T14:00:20.725679348Z'}" }
+      ],
+      "evidence": {}
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 26,
+      "rule": "A new todo is added with a title and starts as not done",
+      "scenario": "A blank title is refused",
+      "tags": ["@story-2", "@negative"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "no todos have been added", "keyword": "Given",
+          "command": "agent-browser get count \"tbody tr\"",
+          "exit": 0, "observed": "baseline count recorded as 4 before the attempt; isolation is via delta (unchanged count), not a literal zero" },
+        { "text": "the User tries to add a todo with a blank title", "keyword": "When",
+          "command": "agent-browser click @e3 (Add, with the title textbox empty)",
+          "exit": 0, "observed": "click succeeded (exit 0) but no POST to /api/todos fired" },
+        { "text": "the list is still empty", "keyword": "Then",
+          "command": "agent-browser get count \"tbody tr\"; agent-browser network requests | grep -i todos",
+          "exit": 0, "observed": "count remained 4 (unchanged from baseline), and the network log shows only the 3 earlier POST /api/todos calls (201) from prior adds — no new POST was made for the blank-title click, confirming the UI refused to submit it" }
+      ],
+      "evidence": {}
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 34,
+      "rule": "Toggling a todo flips its done status",
+      "scenario": "Marking a todo done",
+      "tags": ["@story-3"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "a User has added \"Walk the dog\"", "keyword": "Given",
+          "command": "agent-browser find placeholder \"Add a new todo...\" fill \"Walk the dog\" && agent-browser find role button click --name \"Add\"",
+          "exit": 0, "observed": "new row appeared, count went to 5, checkbox ref @e37 shown as [checked=false]" },
+        { "text": "the User toggles \"Walk the dog\"", "keyword": "When",
+          "command": "agent-browser click @e37",
+          "exit": 0, "observed": "click succeeded" },
+        { "text": "\"Walk the dog\" is done", "keyword": "Then",
+          "command": "agent-browser snapshot -i",
+          "exit": 0, "observed": "checkbox now [checked=true]; confirmed via API: {'id': 'c5bdecbaba4ed652c05df63e6c1fd5a5', 'title': 'Walk the dog', 'done': True}" }
+      ],
+      "evidence": {}
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 39,
+      "rule": "Toggling a todo flips its done status",
+      "scenario": "Marking a done todo not done again",
+      "tags": ["@story-3"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "a User has added \"Walk the dog\" and toggled it done", "keyword": "Given",
+          "command": "agent-browser find placeholder \"Add a new todo...\" fill \"Walk the dog\" && agent-browser find role button click --name \"Add\"; agent-browser click @e43",
+          "exit": 0, "observed": "new row added then toggled; checkbox read [checked=true] after the first toggle" },
+        { "text": "the User toggles \"Walk the dog\" again", "keyword": "When",
+          "command": "agent-browser click @e43",
+          "exit": 0, "observed": "click succeeded" },
+        { "text": "\"Walk the dog\" is not done", "keyword": "Then",
+          "command": "agent-browser snapshot -i",
+          "exit": 0, "observed": "checkbox now [checked=false]; confirmed via API: {'id': '166149abf007e590002edb0a0a00d3e3', 'title': 'Walk the dog', 'done': False}" }
+      ],
+      "evidence": {}
+    },
+    {
+      "feature": "Todo management",
+      "featureFile": "specs/validation/acceptance/todo-management.feature",
+      "line": 47,
+      "rule": "Deleting a todo removes it from the list",
+      "scenario": "Removing a todo",
+      "tags": ["@story-4"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "a User has added \"Walk the dog\" and \"Read a book\"", "keyword": "Given",
+          "command": "agent-browser find placeholder \"Add a new todo...\" fill \"Walk the dog\" && agent-browser find role button click --name \"Add\"; agent-browser find placeholder \"Add a new todo...\" fill \"Read a book\" && agent-browser find role button click --name \"Add\"",
+          "exit": 0, "observed": "baseline count was 6 before this scenario; after both adds, count was 8. New ids: Walk the dog=fb105f46d80eb923e88859df1209436b, Read a book=d9be5d34aabc2016b8931232f1632164" },
+        { "text": "the User deletes \"Walk the dog\"", "keyword": "When",
+          "command": "agent-browser click @e54 (the Delete button on the newly-added \"Walk the dog\" row)",
+          "exit": 0, "observed": "click succeeded" },
+        { "text": "the list has exactly one todo", "keyword": "Then",
+          "command": "agent-browser get count \"tbody tr\"",
+          "exit": 0, "observed": "7 — net delta from this scenario's baseline (6) is +1, i.e. exactly one of the two todos added in this scenario remains" },
+        { "text": "it is titled \"Read a book\"", "keyword": "And",
+          "command": "curl -s \"http://development-default.openchoreoapis.localhost:19080/local-ro-1001-todo-api-http/todos?limit=100\"",
+          "exit": 0, "observed": "id fb105f46d80eb923e88859df1209436b (Walk the dog) is absent from the list; id d9be5d34aabc2016b8931232f1632164 (Read a book) is present with title 'Read a book'; the UI's last row shows \"Read a book\"" }
+      ],
+      "evidence": {}
+    }
+  ]
+}
