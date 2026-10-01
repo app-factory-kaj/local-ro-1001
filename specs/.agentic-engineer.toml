@@ -1,0 +1,4 @@
+apiVersion = "agentic-engineer/v1"
+name = "local-ro-1001"
+createdAt = "2026-10-01T13:33:06Z"
+idea = "A minimal todo app: a Go REST API that stores todos (title, done) in memory with list, create, toggle and delete endpoints, and a single-page React web app that calls the API to show and manage the todos. No sign-in, no database, keep it as small as possible."
